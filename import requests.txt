@@ -1,0 +1,111 @@
+import requests
+from bs4 import BeautifulSoup
+import time
+
+HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120"}
+
+def fetch_html_page(url, label):
+    print(f"Fetching {label}...")
+    try:
+        response = requests.get(url, headers=HEADERS, timeout=15)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+        for tag in soup.find_all(["script", "style", "nav", "header", "footer"]):
+            tag.decompose()
+        text = soup.get_text(separator="\n", strip=True)
+        lines = [l for l in text.split("\n") if l.strip()]
+        clean = "\n".join(lines)
+        print(f"  Done: {len(clean)} characters")
+        return clean
+    except Exception as e:
+        print(f"  Failed: {e}")
+        return ""
+
+def fetch_pdf(url, label):
+    print(f"Fetching {label}...")
+    try:
+        response = requests.get(url, headers=HEADERS, timeout=20)
+        response.raise_for_status()
+        filename = label.replace(" ", "_") + ".pdf"
+        with open(filename, "wb") as f:
+            f.write(response.content)
+        from pypdf import PdfReader
+        reader = PdfReader(filename)
+        text = ""
+        for page in reader.pages:
+            extracted = page.extract_text()
+            if extracted:
+                text += extracted + "\n"
+        lines = [l for l in text.split("\n") if l.strip()]
+        clean = "\n".join(lines)
+        print(f"  Done: {len(clean)} characters")
+        return clean
+    except Exception as e:
+        print(f"  Failed: {e}")
+        return ""
+
+ENBD_HTML_DOCS = {
+    "Emirates NBD KFS - Current and Savings Accounts": "https://www.emiratesnbd.com/en/kfs/cash",
+    "Emirates NBD KFS - Credit Cards": "https://www.emiratesnbd.com/en/kfs/credit-card",
+    "Emirates NBD KFS - Personal Loan Fixed Rate": "https://www.emiratesnbd.com/en/kfs/personal-loan-fixed-interest-rate",
+    "Emirates NBD KFS - Personal Loan Variable Rate": "https://www.emiratesnbd.com/en/kfs/personal-loan-variable-interest-rate",
+    "Emirates NBD KFS - Home Loan": "https://www.emiratesnbd.com/en/kfs/home-loan-fixed-and-variable-interest-rate",
+    "Emirates NBD KFS - Term Deposits": "https://www.emiratesnbd.com/en/kfs/term-deposits",
+}
+
+ENBD_PDF_DOCS = {
+    "Emirates NBD Schedule of Charges": "https://www.emiratesnbd.com/-/media/enbd/files/accounts/fees_charges_personal_banking_soc_poster.pdf",
+}
+
+FAB_PDF_DOCS = {
+    "FAB KFS - Credit Cards": "https://apply.bankfab.com/-/media/fabgroup/home/personal/key-facts-statements/fab-consolidated-credit-cards.pdf?view=1",
+    "FAB Fees and Charges": "https://www.bankfab.com/-/media/fabgroup/home/personal/charges-and-fees/fees-and-charges-first-abu-dhabi-bank.pdf?view=1",
+}
+
+all_content = []
+
+print("=" * 50)
+print("FETCHING EMIRATES NBD KFS DOCUMENTS")
+print("=" * 50)
+for label, url in ENBD_HTML_DOCS.items():
+    text = fetch_html_page(url, label)
+    if text:
+        all_content.append(f"\n\n=== {label} ===\n\n{text}")
+    time.sleep(1)
+
+print("")
+print("=" * 50)
+print("FETCHING EMIRATES NBD PDF DOCUMENTS")
+print("=" * 50)
+for label, url in ENBD_PDF_DOCS.items():
+    text = fetch_pdf(url, label)
+    if text:
+        all_content.append(f"\n\n=== {label} ===\n\n{text}")
+    time.sleep(1)
+
+print("")
+print("=" * 50)
+print("FETCHING FAB DOCUMENTS")
+print("=" * 50)
+for label, url in FAB_PDF_DOCS.items():
+    text = fetch_pdf(url, label)
+    if text:
+        all_content.append(f"\n\n=== {label} ===\n\n{text}")
+    time.sleep(1)
+
+combined = "\n".join(all_content)
+
+with open("master_faq.txt", "a", encoding="utf-8") as f:
+    f.write(combined)
+
+print("")
+print("=" * 50)
+print(f"COMPLETE: {len(all_content)} documents added")
+print(f"Total new characters added: {len(combined)}")
+print("master_faq.txt updated successfully")
+print("=" * 50)
+```
+
+Save and close Notepad. Then run:
+```
+python add_documents.py
