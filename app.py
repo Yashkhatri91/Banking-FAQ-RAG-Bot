@@ -22,8 +22,11 @@ def build_database():
     )
     chunks = splitter.split_text(raw_text)
     chroma_client = chromadb.PersistentClient(path="./chroma_db")
+    try:
     chroma_client.delete_collection(name="faq_vectors")
-    collection = chroma_client.get_or_create_collection(name="faq_vectors")
+except:
+    pass
+collection = chroma_client.get_or_create_collection(name="faq_vectors")
     for i, chunk in enumerate(chunks):
         embedding = get_embedding(chunk)
         collection.add(documents=[chunk], embeddings=[embedding], ids=[f"chunk_{i}"])
