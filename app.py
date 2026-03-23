@@ -22,28 +22,24 @@ def build_database():
     )
     chunks = splitter.split_text(raw_text)
     chroma_client = chromadb.PersistentClient(path="./chroma_db")
-    try:
-
+    existing = [c.name for c in chroma_client.list_collections()]
+    if "faq_vectors" in existing:
         chroma_client.delete_collection(name="faq_vectors")
-
-except Exception:
-    pass
-collection = chroma_client.get_or_create_collection(name="faq_vectors")
+    collection = chroma_client.get_or_create_collection(name="faq_vectors")
     for i, chunk in enumerate(chunks):
         embedding = get_embedding(chunk)
-        collection.add(documents=[chunk], embeddings=[embedding], ids=[f"chunk_{i}"])
+        collection.add(documents=[chunk], embeddings=[embedding], ids=["chunk_" + str(i)])
     return collection
 
 def get_collection():
     chroma_client = chromadb.PersistentClient(path="./chroma_db")
-    try:
+    existing = [c.name for c in chroma_client.list_collections()]
+    if "faq_vectors" in existing:
         collection = chroma_client.get_collection(name="faq_vectors")
-        if collection.count() == 0:
-            raise ValueError("Empty collection")
-        return collection
-    except:
-        st.info("Building knowledge base for first time. Please wait 2 minutes...")
-        return build_database()
+        if collection.count() > 0:
+            return collection
+    st.info("Building knowledge base for first time. Please wait 2 minutes...")
+    return build_database()
 
 def get_answer(question, collection):
     q_embed = get_embedding(question)
@@ -81,6 +77,3 @@ if prompt := st.chat_input("Ask about accounts, cards, loans..."):
             answer = get_answer(prompt, st.session_state.collection)
         st.markdown(answer)
     st.session_state.messages.append({"role": "assistant", "content": answer})
-
-
-
