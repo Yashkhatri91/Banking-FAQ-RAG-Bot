@@ -24,9 +24,9 @@ def build_database():
     chroma_client = chromadb.PersistentClient(path="./chroma_db")
     try:
 
-    chroma_client.delete_collection(name="faq_vectors")
-    
-except:
+        chroma_client.delete_collection(name="faq_vectors")
+
+except Exception:
     pass
 collection = chroma_client.get_or_create_collection(name="faq_vectors")
     for i, chunk in enumerate(chunks):
